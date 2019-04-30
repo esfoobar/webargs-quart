@@ -62,6 +62,9 @@ class QuartParser(AsyncParser):
 
     async def parse_json(self, req, name, field):
         """Pull a json value from the request."""
+        body = await req.body
+        if not (body and is_json_request(req)):
+            return core.missing
         json_data = self._cache.get("json")
         if json_data is None:
             try:
