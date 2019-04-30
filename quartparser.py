@@ -57,7 +57,7 @@ class QuartParser(AsyncParser):
         """Pull a form value from the request."""
         post_data = self._cache.get("post")
         if post_data is None:
-            self._cache["post"] = await req.body
+            self._cache["post"] = await req.form
         return core.get_value(self._cache["post"], name, field)
 
     async def parse_json(self, req, name, field):
