@@ -26,7 +26,7 @@ from quart.exceptions import HTTPException
 
 from webargs import core
 from webargs.core import json
-
+from webargs.asyncparser import AsyncParser
 
 def abort(http_status_code, exc=None, **kwargs):
     """Raise a HTTPException for the given http_status_code. Attach any keyword
@@ -44,7 +44,7 @@ def is_json_request(req):
     return core.is_json(req.mimetype)
 
 
-class QuartParser(core.Parser):
+class QuartParser(AsyncParser):
     """Quart request argument parser."""
 
     __location_map__ = dict(view_args="parse_view_args", **core.Parser.__location_map__)
@@ -53,35 +53,30 @@ class QuartParser(core.Parser):
         """Pull a value from the request's ``view_args``."""
         return core.get_value(req.view_args, name, field)
 
+    async def parse_form(self, req, name, field):
+        """Pull a form value from the request."""
+        post_data = self._cache.get("post")
+        if post_data is None:
+            self._cache["post"] = await req.body
+        return core.get_value(self._cache["post"], name, field)
+
     async def parse_json(self, req, name, field):
         """Pull a json value from the request."""
         json_data = self._cache.get("json")
         if json_data is None:
-            # We decode the json manually here instead of
-            # using req.get_json() so that we can handle
-            # JSONDecodeErrors consistently
-            data = req.get_data(cache=True)
             try:
-                self._cache["json"] = json_data = core.parse_json(data)
+                json_data = await req.json
             except json.JSONDecodeError as e:
                 if e.doc == "":
                     return core.missing
                 else:
                     return self.handle_invalid_json_error(e, req)
+            self._cache["json"] = json_data
         return core.get_value(json_data, name, field, allow_many_nested=True)
 
     def parse_querystring(self, req, name, field):
         """Pull a querystring value from the request."""
         return core.get_value(req.args, name, field)
-
-    def parse_form(self, req, name, field):
-        """Pull a form value from the request."""
-        import pdb; pdb.set_trace()
-        try:
-            return core.get_value(req.form, name, field)
-        except AttributeError:
-            pass
-        return core.missing
 
     def parse_headers(self, req, name, field):
         """Pull a value from the header data."""
