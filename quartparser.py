@@ -28,6 +28,7 @@ from webargs import core
 from webargs.core import json
 from webargs.asyncparser import AsyncParser
 
+
 def abort(http_status_code, exc=None, **kwargs):
     """Raise a HTTPException for the given http_status_code. Attach any keyword
     arguments to the exception for later processing.
@@ -47,7 +48,8 @@ def is_json_request(req):
 class QuartParser(AsyncParser):
     """Quart request argument parser."""
 
-    __location_map__ = dict(view_args="parse_view_args", **core.Parser.__location_map__)
+    __location_map__ = dict(view_args="parse_view_args",
+                            **core.Parser.__location_map__)
 
     def parse_view_args(self, req, name, field):
         """Pull a value from the request's ``view_args``."""
